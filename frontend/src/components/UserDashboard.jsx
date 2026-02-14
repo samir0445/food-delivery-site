@@ -52,8 +52,10 @@ const scrollhandler = (ref,direction)=>{
 
 
   return (
+    <>
+    <Nav/>
     <div className='w-screen min-h-screen flex flex-col gap-5 items-center bg-[#fff9f9] overflow-y-auto'>
-      <Nav/>
+      
 
       <div className='w-full max-w-6xl flex flex-col gap-5 items-start p-[10px]'>
           <h1 className='text-gray-800 text-2xl sm:text-3xl'>Explore For your First Order</h1>
@@ -96,7 +98,7 @@ const scrollhandler = (ref,direction)=>{
            
 
             <div className='w-full flex overflow-x-auto gap-4 pb-2' ref={shopScrollRef}>
-              {shopInMyCity.map((shop,index)=>(
+              {shopInMyCity?.map((shop,index)=>(
                 <CategoryCard image={shop.image} name={shop.name} key={index} />
               ))}
           </div>
@@ -125,6 +127,7 @@ const scrollhandler = (ref,direction)=>{
       </div>
       
     </div>
+    </>
   )
 }
 

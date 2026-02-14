@@ -55,6 +55,8 @@ function SignUp() {
     }
   }
 
+
+
   const handleGoogleAuth = async()=>{
     
 

@@ -13,14 +13,24 @@ import AddItems from './pages/AddItems'
 import EditItem from './pages/EditItem'
 import useGetShopBYCity from './hooks/useGetShopByCity'
 import useGetItemsBYCity from './hooks/useGetItemsByCity'
+import CartPage from './pages/CartPage'
+import CheckOut from './pages/CheckOut'
+import OrderPlaced from './pages/OrderPlaced'
+import MyOrder from './pages/MyOrder'
+import useGetMyOrders from './hooks/useGetMyOrder'
+import useUpdateLocation from './hooks/useUpdateLocation'
+import TrackOrderPage from './pages/TrackOrderPage'
 export const serverUrl ="http://localhost:3000"
 
 function App() {
+  useGetCity();
+  useUpdateLocation();
   useGetCurrentUser();
+  useGetMyOrders();
   useGetItemsBYCity(); 
   useGetShopBYCity();
   useGetMyShop();
-  useGetCity();
+  
 
   const {userData} = useSelector(state=>state.user)
   return (
@@ -32,6 +42,11 @@ function App() {
     <Route path="/create-edit-shop" element ={userData?<CreateEditShop/>:<Navigate to={"/signin"} />}/>
     <Route path="/add-item" element ={userData?<AddItems/>:<Navigate to={"/signin"} />}/>
     <Route path="/edit-item/:itemId" element ={userData?<EditItem/>:<Navigate to={"/signin"} />}/>
+    <Route path="/cart" element ={userData?<CartPage/>:<Navigate to={"/signin"} />}/>
+    <Route path="/checkout" element ={userData?<CheckOut/>:<Navigate to={"/"} />}/>
+    <Route path="/order-placed" element ={userData?<OrderPlaced/>:<Navigate to={"/"} />}/>
+    <Route path="/my-order" element ={userData?<MyOrder/>:<Navigate to={"/"} />}/>
+    <Route path="/track-order/:orderId" element ={userData?<TrackOrderPage/>:<Navigate to={"/"} />}/>
     
   </Routes>
   )

@@ -2,15 +2,10 @@ import Shop from "../models/shop.model.js";
 import uploadOnCloudinary from "../util/cloudinary.js";
 
 export const createShop = async(req,res)=>{
-    try {
-       
-        
+    try {       
         const {name,city,state,address}=req.body;
         let image;
-        if(req.file){
-            
-            
-            
+        if(req.file){  
             image =await uploadOnCloudinary(req.file.path)
         }
         let shop = await Shop.findOne({owner:req.userId});
@@ -38,7 +33,8 @@ export const createShop = async(req,res)=>{
         },{new:true})
         }
 
-        await shop.populate("owner").populate({
+        await shop.populate("owner");
+        await shop.populate({
                 path:"items",
                 option:{sort:{updatedAt:-1}}
             })

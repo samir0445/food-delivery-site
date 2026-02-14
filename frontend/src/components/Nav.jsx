@@ -11,7 +11,7 @@ import { LuReceiptText } from "react-icons/lu";
 import { useNavigate } from 'react-router-dom';
 
 function Nav() {
-  const { userData,city } = useSelector(state => state.user);
+  const { userData,city,cartItems,myOrders} = useSelector(state => state.user);
   const { myShopData } = useSelector(state => state.owner);
   const [showInfo, setShowInfo] = useState(false);
   const[showSearch,setShowSearch] = useState(false);
@@ -30,7 +30,7 @@ function Nav() {
 
 
   return (
-    <div className='w-full h-[80px] flex items-center justify-center md:justify-center gap-[30px] px-[20px] fixed top-0 bg-[#fff9f6] overflow-visible'>
+    <div className='w-full h-[80px] flex items-center justify-center md:justify-center  gap-[30px] px-[20px] z-[50] fixed top-0 bg-[#fff9f6] overflow-visible'>
       <h1 className='text-3xl font-bold mb-2 text-[#ff4d2d]'>Vingo</h1>
       { 
       userData?.role ==="user"
@@ -51,9 +51,9 @@ function Nav() {
 
       <div className='flex items-center gap-4'>
         {userData?.role ==="user" &&
-        <div className='relative cursor-pointer'>
+        <div className='relative cursor-pointer'onClick={()=>navigate("/cart")}>
           <IoCartOutline size={30} className='text-[#ff4d2d]' />
-          <span className='absolute right-[-9px] top-[-12px] text-[#ff4d2d] '>0</span>
+          <span className='absolute right-[-9px] top-[-12px] text-[#ff4d2d] '>{cartItems.length}</span>
         </div>}
 
         {userData?.role ==="owner"  &&
@@ -63,10 +63,14 @@ function Nav() {
             <span>Add Food Item</span>
 
           </button>}
-          <div className='flex items-center gap-2 cursor-pointer relative px-2 py-1 rounded-lg  bg-[#ff4d2d]/10 text-[#ff4d2d] font-semibold '>
+          <div className='flex items-center gap-2 cursor-pointer relative px-2 py-1 rounded-lg  bg-[#ff4d2d]/10 text-[#ff4d2d] font-semibold ' onClick={()=>navigate("/my-order")}>
             <LuReceiptText size={23} />
             <span>Orders</span>
-            <span className='absolute -right-2 -top-2 text-xs font-bold text-white  bg-[#ff4d2d] rounded-full px-[6px] py-[1px]'>0</span>
+            <span className='absolute -right-2 -top-2 text-xs font-bold text-white  bg-[#ff4d2d] rounded-full px-[6px] py-[1px]'>
+              {myOrders.length}
+            
+
+            </span>
 
           </div>
         </div>
@@ -74,7 +78,7 @@ function Nav() {
 
         {userData?.role =="user" &&
         <button className='hidden md:block cursor-pointer px-3 py-1 rounded-lg bg-[#ff4d2d]/10
-         text-[#ff4d2d] text-sm font-medium h-[35px]'>My Order
+         text-[#ff4d2d] text-sm font-medium h-[35px]' onClick={()=>navigate("/my-order")}>My Order
         </button>}
 
         <div className='w-[40px] h-[40px] rounded-full flex items-center justify-center bg-[#ff4d2d] text-white text-[18px] shadow-xl font-semibold cursor-pointer' onClick={() => setShowInfo(prev => !prev)}>
@@ -82,7 +86,7 @@ function Nav() {
           {userData?.fullName.slice(0,1)}
         </div>
         {showInfo &&
-          <div className='fixed top-[80px] right-[10px] md:right-[10%] lg:right-[25%] w-[180px] bg-white shadow-2xl rounded-xl p-[20px] flex flex-col gap-[10px] z-[9999]'>
+          <div className={`fixed top-[80px] right-[10px] ${userData.role=="deliveryBoy"?"md:right-[20%] lg:right-[40%]":"md:right-[10%] lg:right-[25%]"}  w-[180px] bg-white shadow-2xl rounded-xl p-[20px] flex flex-col gap-[10px] z-[9999]`}>
 
             <div className='text-[17px] font-semibold'>
               {userData.fullName}

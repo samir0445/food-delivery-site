@@ -4,7 +4,7 @@ import "dotenv/config"
 
 const  connectDB =async ()=>{
     try {
-         await mongoose.connect(`${process.env.MONGODB}/vingo`);
+         await mongoose.connect(`${process.env.MONGODB}/jingo`);
 
          console.log("db connected");
          

@@ -38,7 +38,7 @@ function SignIn() {
       setErr("")
       navigate("/")
 
-      console.log(result);
+      
       
       
     } catch (error) {

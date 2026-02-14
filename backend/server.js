@@ -7,6 +7,7 @@ import cors from "cors"
 import user2Route from "./routes/user.route.js"
 import shopRoute from "./routes/shop.route.js"
 import itemRoute from "./routes/item.route.js"
+import orderRoute from "./routes/order.route.js"
 
 const app = express()
 
@@ -24,6 +25,7 @@ app.use("/api/auth" , userRoute);
 app.use("/api/user" , user2Route);
 app.use("/api/shop" , shopRoute);
 app.use("/api/item" , itemRoute);
+app.use("/api/order" , orderRoute);
 
 
 

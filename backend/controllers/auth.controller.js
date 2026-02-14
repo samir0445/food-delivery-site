@@ -6,7 +6,10 @@ import { sendOtpMail } from "../util/nodemailer.js";
 
 export const signUp = async (req, res) => {
    try {
+      console.log("in signup")
+         console.log("signup" ,req.body)
       const { fullName, email, mobile, password, role } = req.body;
+      
       let user = await User.findOne({ email })
       if (user) {
          return res.status(400).json({ message: "USer already exist" });
