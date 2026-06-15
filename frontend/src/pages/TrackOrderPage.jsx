@@ -4,11 +4,14 @@ import axios from 'axios';
 import { serverUrl } from '../App';
 import { IoMdArrowBack } from "react-icons/io";
 import DeliveryBoyTracking from '../components/DeliveryBoyTracking';
+import { useSelector } from 'react-redux';
 
 function TrackOrderPage() {
+  const{socket}=useSelector(state=>state.user);
   const navigate = useNavigate();
   const {orderId} = useParams();
   const [currOrder,setCurrOrder]=useState();
+  const[liveLocation,setLiveLocation]=useState({})
 
 
   const handleGetOrder = async()=>{
@@ -24,6 +27,16 @@ function TrackOrderPage() {
       
     }
   }
+
+  useEffect(()=>{
+    socket.on('updateDeliveryLocation',({delievryBoyId,latitude,longitude})=>{
+      setLiveLocation(prev=>({
+        ...prev,
+        [delievryBoyId]:{lat:latitude,lon:longitude}
+      }))
+    })
+
+  },[socket])
 
   useEffect(()=>{
     handleGetOrder();
@@ -54,11 +67,17 @@ function TrackOrderPage() {
 
             </>:<p className='text-green-600 font-semibold text-lg'>Order has been delivered</p>}
 
-            {shopOrder.assignedDeliveryBoy && 
+            {shopOrder.deliveryOtp?(
+              <div className='flex justify-center mt-4 w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-xl shadow-md'><h1><span>DeliveryOtp : </span>{shopOrder.deliveryOtp}</h1>
+
+              </div>
+            ):null}
+
+            {(shopOrder.assignedDeliveryBoy && shopOrder.status!="delivered") &&
             <div className='h-[400px] w-full rounded-2xl overflow-hidden shadow-md'>
 
               <DeliveryBoyTracking data={{
-                deliveryBoyLocation:{
+                deliveryBoyLocation:liveLocation[shopOrder.assignedDeliveryBoy._id] ||{
                   lat:shopOrder.assignedDeliveryBoy.location.coordinates[1],
                   lon:shopOrder.assignedDeliveryBoy.location.coordinates[0],
                 },

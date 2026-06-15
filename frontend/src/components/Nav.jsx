@@ -5,22 +5,46 @@ import { IoSearch } from "react-icons/io5";
 import { IoCartOutline } from "react-icons/io5";
 import { useDispatch, useSelector } from "react-redux"
 import { serverUrl } from '../App';
-import { setUserData } from '../redux/userSlice';
+import { setSearchItems, setUserData } from '../redux/userSlice';
 import { FaPlus } from "react-icons/fa6";
 import { LuReceiptText } from "react-icons/lu";
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 function Nav() {
-  const { userData,city,cartItems,myOrders} = useSelector(state => state.user);
+  const { userData,city,cartItems,myOrders,} = useSelector(state => state.user);
   const { myShopData } = useSelector(state => state.owner);
   const [showInfo, setShowInfo] = useState(false);
   const[showSearch,setShowSearch] = useState(false);
+  const [query,setQuery] = useState("");
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const handleSearchItem = async()=>{
+  try {
+    const result = await axios.get(`${serverUrl}/api/item/search?query=${query}&city=${city}`,{withCredentials:true})
+    console.log(result?.data);
+    dispatch(setSearchItems(result?.data))
+    
+    
+  } catch (error) {
+    console.log(error);
+    
+  }
+
+}
+useEffect(()=>{
+  if(query){
+    handleSearchItem();
+
+  }else{
+    dispatch(setSearchItems(null))
+  }
+},[query])
+
   const handleLogout = async()=>{
     try {
-      const result =await axios.get(`${serverUrl}/api/auth/signout`,{withCredentials:true})
+      const result =await axios.post(`${serverUrl}/api/auth/signout`,{withCredentials:true})
       dispatch(setUserData(null))
     } catch (error) {
       console.log(error);
@@ -43,7 +67,7 @@ function Nav() {
 
         <div className='w-[80%] flex items-center gap-[10px]'>
           <IoSearch size={25} className=' text-[#ff4d2d]' />
-          <input type="text" placeholder='Search delicious food....' className='px-[10px] text-gray-700 outline-0 w-full' />
+          <input type="text" placeholder='Search delicious food....' className='px-[10px] text-gray-700 outline-0 w-full' onChange={(e)=>setQuery(e.target.value) } value={query}/>
 
         </div>
 

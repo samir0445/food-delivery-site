@@ -8,8 +8,23 @@ import user2Route from "./routes/user.route.js"
 import shopRoute from "./routes/shop.route.js"
 import itemRoute from "./routes/item.route.js"
 import orderRoute from "./routes/order.route.js"
+import http from "http";
+import { Server } from "socket.io"
+import { socketHandler } from "./socket.js"
+
 
 const app = express()
+const server = http.createServer(app);
+
+const io = new Server(server,{
+    cors:{
+    origin:"http://localhost:5173",
+    credentials:true,
+    methods:['POST','GET']
+}
+})
+
+app.set("io",io);
 
 // global middleware
 app.use(cors({
@@ -27,9 +42,10 @@ app.use("/api/shop" , shopRoute);
 app.use("/api/item" , itemRoute);
 app.use("/api/order" , orderRoute);
 
+socketHandler(io);
 
 
-app.listen(process.env.PORT || 3000,async ()=>{
+server.listen(process.env.PORT || 3000,async ()=>{
     await connectDB();
     console.log(`server started ${process.env.PORT}`);
     

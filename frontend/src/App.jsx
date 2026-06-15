@@ -4,7 +4,7 @@ import SignUp from './pages/SignUp'
 import SignIn from './pages/SignIn'
 import ForgotPassword from './pages/forgotPassword'
 import useGetCurrentUser from './hooks/useGetCurrentUser'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import Home from './pages/Home'
 import useGetCity from './hooks/useGetCity'
 import useGetMyShop from './hooks/useGetMyShop'
@@ -20,9 +20,15 @@ import MyOrder from './pages/MyOrder'
 import useGetMyOrders from './hooks/useGetMyOrder'
 import useUpdateLocation from './hooks/useUpdateLocation'
 import TrackOrderPage from './pages/TrackOrderPage'
+import Shop from './pages/Shop'
+import { useEffect } from 'react'
+import { io } from 'socket.io-client'
+import { setSocket } from './redux/userSlice'
 export const serverUrl ="http://localhost:3000"
 
 function App() {
+  const {userData} = useSelector(state=>state.user)
+  const dispatch = useDispatch();
   useGetCity();
   useUpdateLocation();
   useGetCurrentUser();
@@ -30,9 +36,22 @@ function App() {
   useGetItemsBYCity(); 
   useGetShopBYCity();
   useGetMyShop();
+
+  useEffect(()=>{
+   const socketInstance = io(serverUrl,{withCredentials:true})
+    dispatch(setSocket(socketInstance))
+    socketInstance.on('connect',()=>{
+      if(userData){
+        socketInstance.emit('identity',{userId:userData._id});
+      }
+    })
+    return ()=>{
+      socketInstance.disconnect()
+    }
+  },[userData?._id])
   
 
-  const {userData} = useSelector(state=>state.user)
+  
   return (
   <Routes>
     <Route path="/signup" element ={!userData?<SignUp/>:<Navigate to={"/"}/>}/>
@@ -47,6 +66,7 @@ function App() {
     <Route path="/order-placed" element ={userData?<OrderPlaced/>:<Navigate to={"/"} />}/>
     <Route path="/my-order" element ={userData?<MyOrder/>:<Navigate to={"/"} />}/>
     <Route path="/track-order/:orderId" element ={userData?<TrackOrderPage/>:<Navigate to={"/"} />}/>
+    <Route path="/shop/:shopId" element ={userData?<Shop/>:<Navigate to={"/"} />}/>
     
   </Routes>
   )

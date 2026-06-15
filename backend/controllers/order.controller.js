@@ -2,6 +2,14 @@ import DeliveryAssignment from "../models/delievryAssingment.model.js";
 import Order from "../models/order.model.js";
 import Shop from "../models/shop.model.js";
 import User from "../models/user.model.js";
+import { sendDelievryOtp } from "../util/nodemailer.js";
+import Razorpay from "razorpay";
+import "dotenv/config"
+
+// let instance = new Razorpay({
+//   key_id: process.env.RAZORPAY_KEY,
+//   key_secret:process.env.RAZORPAY_SECRET_KEY,
+// });
 
 export const placeOrder = async(req,res)=>{
     try {
@@ -23,6 +31,7 @@ export const placeOrder = async(req,res)=>{
             }
             groupItemByShop[shopId].push(item);
         });
+        
         // till here the cartitem are get seperated acc to to shop after that we will create a shop order inwhich the the item beling to one order sent to thst shop as small order
         const shopOrders = await Promise.all(Object.keys(groupItemByShop).map(async(shopId)=>{
             const shop = await Shop.findById(shopId).populate("owner");
@@ -31,7 +40,8 @@ export const placeOrder = async(req,res)=>{
             }
             const items = groupItemByShop[shopId]
             //it gives total numbers of item that has been order from one shop
-            const subTotal = items.reduce((sum,i)=>sum+Number(i.price)*Number(i.quantity),0)
+            // const subTotal = totalAmount>=500?items.reduce((sum,i)=>sum+Number(i.price)*Number(i.quantity),0):items.reduce((sum,i)=>sum+Number(i.price)*Number(i.quantity),20);
+            const subTotal = items.reduce((sum,i)=>sum+Number(i.price)*Number(i.quantity),0);
             return{
                 shop:shop._id,
                 owner:shop.owner._id,
@@ -46,6 +56,30 @@ export const placeOrder = async(req,res)=>{
         })
         
         )
+// razorpay backend
+        // if(paymentMethod == "online"){
+        //     const razorOrder = instance.orders.create({
+        //         amount:Math.round(totalAmount*100),
+        //         currency:'INR',
+        //         receipt:`receipt_${Date.now()}`
+
+        //     })
+        //     const newOrder = await Order.create({
+        //         user:req.userId,
+        //         paymentMethod,
+        //         deliveryAddress,
+        //         totalAmount,
+        //         shopOrders,
+        //         razorpayOrderId:razorOrder.id,
+        //         payment:false
+
+        //     })
+        //     return res.status(200).json({
+        //         razorOrder,
+        //         orderId:newOrder._id,
+        //         key_id: process.env.RAZORPAY_KEY,
+        //     })
+        // }
         // shoporder create structure shop wise acc to model
         const newOrder = await Order.create({
             user:req.userId,
@@ -57,6 +91,26 @@ export const placeOrder = async(req,res)=>{
         })
        await newOrder.populate("shopOrders.shopOrderItem.item","name image price")
        await newOrder.populate("shopOrders.shop","name")
+       await newOrder.populate("shopOrders.owner","name socketId")
+       await newOrder.populate("user","name email mobile")
+
+       const io =req.app.get('io');
+       if(io){
+            newOrder.shopOrders.forEach(shopOrder => {
+                const ownerSocketId = shopOrder.owner.socketId;
+                if(ownerSocketId){
+                    io.to(ownerSocketId).emit('newOrder',{
+                    _id:newOrder._id,
+                    paymentMethod :newOrder.paymentMethod,
+                    user:newOrder.user,
+                    shopOrders:shopOrder,
+                    createdAt:newOrder.createdAt,
+                    deliveryAddress:newOrder.deliveryAddress,
+                    })
+                }
+            });
+       }
+
         return res.status(201).json(newOrder)
 
         
@@ -64,6 +118,30 @@ export const placeOrder = async(req,res)=>{
         return res.status(500).json({ place :"place order" , message :error.message})
     }
 }
+
+// export const verifyPayment = async(req,res)=>{
+//     try {
+//         const {razorpay_payment_id,orderId}=req.body;
+//         const payment = await instance.payments.fetch(razorpay_payment_id);
+//         if(!payment || payment.status!="captured"){
+//             return res.status(400).json({message:"payment didnt captured"})
+//         }
+//         const order = await Order.findById(orderId);
+//         if(!order){
+//             return res.status(400).json({message:"payment order didnt found"})
+//         }
+//         order.payment = true;
+//         order.razorpayPaymentId = razorpay_payment_id;
+//         await order.save();
+//         await order.populate("shopOrders.shopOrderItem.item","name image price")
+//        await order.populate("shopOrders.shop","name")
+        
+//          return res.status(200).json({order ,message:"payment order didnt found"})
+        
+//     } catch (error) {
+//         return res.status(500).json({ place :"verify online" , message :error.message})
+//     }
+// }
 
 export const getMyOrders = async(req,res)=>{
     try {
@@ -172,6 +250,27 @@ export const updateOrderStatus = async(req,res)=>{
                 latitude:b.location.coordinates[1],
                 mobile:b.mobile     
             }))
+            await deliveryAssignment.populate('order')
+            await deliveryAssignment.populate('shop')
+
+            const io= req.app.get('io');
+            if(io){
+                availableBoys.forEach(boy => {
+                    const boySocketId = boy.socketId;
+                    if(boySocketId){
+                        io.to(boySocketId).emit('newAssignment',{
+                            sendTo:boy._id,
+                            assignmentId:deliveryAssignment._id,
+                            orderId:deliveryAssignment.order._id,
+                            shopName:deliveryAssignment.shop.name,
+                            deliveryAddress:deliveryAssignment.order.deliveryAddress,
+                            items:deliveryAssignment.order.shopOrders.find(so=>so._id.equals(deliveryAssignment.shopOrderId)).shopOrderItem||[],
+                            subTotal:deliveryAssignment.order.shopOrders.find(so=>so._id.equals(deliveryAssignment.shopOrderId))?.subTotal||0,
+
+                        })
+                    }
+                });
+            }
             
 
 
@@ -185,7 +284,19 @@ export const updateOrderStatus = async(req,res)=>{
 
         await order.populate("shopOrders.shop","name")
         await order.populate("shopOrders.assignedDeliveryBoy","name mobile email")
-
+        await order.populate("user","socketId")
+        const io = req.app.get('io');
+        if(io){
+            const userSocketId = order.user.socketId
+            if(userSocketId){
+                io.to(userSocketId).emit('update-status',{
+                    orderId:order._id,
+                    shopId:updatedShopOrder.shop._id,
+                    status:updatedShopOrder.status,
+                    userId:order.user._id
+                })
+            }
+        }
         
 
          return res.status(200).json({
@@ -348,5 +459,91 @@ export const getOrderById = async(req,res)=>{
         return res.status(200).json(order);
     } catch (error) {
          return res.status(500).json({ place :"getby id assignment" , message :error.message})
+    }
+}
+
+export const sendDeliveryOtp = async(req,res)=>{
+    try {
+        const {orderId,shopOrderId}= req.body;
+        let order = await Order.findById(orderId).populate("user")
+        let shopOrder = order.shopOrders.id(shopOrderId)
+        if(!order || !shopOrder){
+            return res.status(400).json({message:" order or shopOrder not found"});
+        }
+        const otp = Math.floor(1000 + Math.random() *9000).toString();
+        shopOrder.deliveryOtp = otp;
+        shopOrder.otpExpires = Date.now() + 10*60*1000;
+        await order.save();
+        // await sendDelievryOtp(order.user,otp);
+        return res.status(200).json({message:"delivery otp send successfully"}); 
+    } catch (error) {
+        return res.status(500).json({ place :"sending delivery otp" , message :error.message})
+    }
+
+}
+
+export const verifyDeliveryOtp = async(req,res)=>{
+    try {
+        const {orderId,shopOrderId,otp} = req.body;
+        let order = await Order.findById(orderId);
+        let shopOrder = order.shopOrders.id(shopOrderId)
+        if(!order || !shopOrder){
+            return res.status(400).json({message:" order or shopOrder not found"});
+        }
+        if(shopOrder.deliveryOtp != otp|| shopOrder.otpExpires<Date.now()){
+            return res.status(400).json({message:"delivery otp recheck "});
+        }
+        shopOrder.status = "delivered";
+        shopOrder.deliveredAt = Date.now();
+        await order.save();
+        
+        await DeliveryAssignment.deleteOne({
+            shopOrderId:shopOrder._id,
+            order:order._id,
+            assignedTo:shopOrder.assignedDeliveryBoy
+        })
+        return res.status(200).json({message:"Order Delivered successFully"});
+        
+    } catch (error) {
+        return res.status(500).json({ place :"sending delivery otp" , message :error.message})
+    }
+}
+
+export const getTodayDelivery = async(req,res)=>{
+    try {
+        const deliveryBoyId = req.userId;
+        const startOfDay =new Date();
+        startOfDay.setHours(0,0,0,0);
+
+        const orders = await Order.find({
+            "shopOrders.assignedDeliveryBoy":deliveryBoyId,
+            "shopOrders.status":"delivered",
+            "shopOrders.deliveredAt":{$gte:startOfDay}
+        }).lean()
+        let todayDeliveries =[];
+        orders.forEach(order=>{
+            order.shopOrders.forEach(shopOrder=>{
+                if(shopOrder.assignedDeliveryBoy == deliveryBoyId && shopOrder.status == "delivered" && shopOrder.deliveredAt && shopOrder.deliveredAt >= startOfDay){
+                    todayDeliveries.push(shopOrder)
+                }
+            })
+        })
+
+        let stats ={}
+        todayDeliveries.forEach(shopOrder=>{
+            const hour = new Date(shopOrder.deliveredAt).getHours();
+            stats[hour]=(stats[hour]||0)+1;
+            
+        })
+        let formattedStats = Object.keys(stats).map(hour=>({
+            hour:parseInt(hour),
+            count:stats[hour]
+        }))
+        formattedStats.sort((a,b)=>a.hour-b.hour)
+        
+        return res.status(200).json(formattedStats);
+
+    } catch (error) {
+        return res.status(500).json({ place :"get today delivery" , message :error.message})
     }
 }

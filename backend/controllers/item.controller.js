@@ -122,3 +122,75 @@ export const getItemByCity = async(req,res)=>{
     }
 
 }
+
+export const shopItemById= async(req,res)=>{
+    try {
+        const {shopId}=req.params;
+        const shop = await Shop.findById(shopId)
+        .populate("items")
+        if(!shop){
+            return res.status(400).json({  message :"coundn't find shop"})
+        }
+        return res.status(200).json({
+            shop,
+            items:shop.items
+        })
+    } catch (error) {
+        return res.status(500).json({ place :"get shop item" , message :error.message})
+    }
+}
+
+export const searchItem = async(req,res)=>{
+    try {
+        const {query,city} = req.query;
+        if(!query || !city){
+            return null;
+        }
+        const shops = await Shop.find({
+            city:{$regex:new RegExp(`^${city}$`,"i")} 
+            // to find city without having case sensitive problem
+        }).populate("items")
+        if(!shops){
+            return res.status(400).json({ message : "No shop Found"})
+        }
+        const shopId =shops.map(s=>s._id);
+        const items = await Item.find({
+            shop:{$in:shopId},
+            $or:[
+                {name:{$regex:query,$options:"i"}},
+                {category:{$regex:query,$options:"i"}},
+            ]
+            
+        }).populate("shop","name image");
+
+        return res.status(200).json(items)
+        
+    } catch (error) {
+        return res.status(500).json({ place :"search item" , message :error.message})
+    }
+}
+
+export const rating= async(req,res)=>{
+    try {
+         const {itemId,rating}=req.body;
+         if(!itemId || !rating){
+            return res.status(400).json({message:"itemid or rating not found"})
+         }
+         if(rating>5||rating<1){
+            return res.status(400).json({message:"invalid rating"})
+         }
+         const item = await Item.findById(itemId)
+         if(!item){
+            return res.status(400).json({message:"item not found"})
+         }
+         const newCount = item.rating.count +1;
+         const newAvg = ((item.rating.average*item.rating.count )+ rating)/newCount; 
+         item.rating.count = newCount;
+         item.rating.average = newAvg;
+         await item.save();
+         return res.status(200).json({rating : item.rating.average})
+        
+    } catch (error) {
+        return res.status(500).json({ place :"rating" , message :error.message})
+    }
+}

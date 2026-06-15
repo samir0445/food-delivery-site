@@ -32,7 +32,7 @@ function RecenterMap({location}){
 
 function CheckOut() {
   const {location , address} = useSelector(state=>state.map);
-  const {cartItems,totalAmount} = useSelector(state=>state.user);
+  const {cartItems,totalAmount,userData} = useSelector(state=>state.user);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -41,6 +41,7 @@ const [addressInput , setAddressInput] = useState("")
 const[paymentMethod,setPaymentMethod] = useState("cod")
 
 const deliveryFee = totalAmount>500?0:35
+
 const grandTotal = totalAmount + deliveryFee;
 
 
@@ -60,12 +61,18 @@ const getAddressByLatLong = async(lat,long)=>{
 }
 
 const getCurrentLocaion = ()=>{
-      navigator.geolocation.getCurrentPosition(async(position)=>{ 
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-            dispatch(setLocation({lat:latitude,long:longitude}));
-            getAddressByLatLong(latitude,longitude);
-})}
+
+  const latitude = userData.location.coordinates[1];
+  const longitude = userData.location.coordinates[0];
+  dispatch(setLocation({lat:latitude,long:longitude}));
+   getAddressByLatLong(latitude,longitude);
+//       navigator.geolocation.getCurrentPosition(async(position)=>{ 
+//             const latitude = position.coords.latitude;
+//             const longitude = position.coords.longitude;
+//             dispatch(setLocation({lat:latitude,long:longitude}));
+//             getAddressByLatLong(latitude,longitude);
+// })
+}
 
 
 const onDragEnd =(e)=>{
@@ -102,7 +109,7 @@ const handlePlaceOrder =async()=> {
         latitude:location.lat,
         longitude:location.long
       },
-      totalAmount,
+      totalAmount:grandTotal,
       cartItems
     },{withCredentials:true})
     

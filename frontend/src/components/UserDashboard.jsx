@@ -6,15 +6,20 @@ import { FaCircleChevronLeft } from "react-icons/fa6";
 import { FaCircleChevronRight } from "react-icons/fa6";
 import { useSelector } from 'react-redux';
 import FoodCart from './FoodCart';
+import axios from 'axios';
+import { serverUrl } from '../App';
+import { useNavigate } from 'react-router-dom';
 
 
 
 function UserDashboard() {
-  const {city,shopInMyCity,itemsInMyCity} = useSelector(state=>state.user)
+  const {city,shopInMyCity,itemsInMyCity,searchItems} = useSelector(state=>state.user)
 const cateScrollRef = useRef();
 const shopScrollRef = useRef();
 const [showLeftCateButton ,setShowLeftCateButton] = useState(false)
 const [showRightCateButton ,setShowRightCateButton] = useState(false)
+const[updatedItem,setUpdatedItem]=useState([]);
+const navigate= useNavigate();
 
 // const updateButton = (ref,setleft,setRight)=>{
 //   const element = ref.current;
@@ -25,6 +30,23 @@ const [showRightCateButton ,setShowRightCateButton] = useState(false)
 
 // }
 
+
+
+const handleFilterByCategory= (category)=>{
+  try {
+    if(category=="All"){
+      setUpdatedItem(itemsInMyCity);
+    }else{
+      const filterItems = itemsInMyCity.filter(i=>i.category===category);
+      setUpdatedItem(filterItems);
+    }
+    
+  } catch (error) {
+    console.log(error);
+    
+  }
+}
+
 const scrollhandler = (ref,direction)=>{
   if(ref.current){
     ref.current.scrollBy({
@@ -34,6 +56,9 @@ const scrollhandler = (ref,direction)=>{
   }
 
 }
+useEffect(()=>{
+  setUpdatedItem(itemsInMyCity)
+},[itemsInMyCity])
 
 // useEffect(()=>{
 //   if(cateScrollRef.current){
@@ -52,9 +77,19 @@ const scrollhandler = (ref,direction)=>{
 
 
   return (
-    <>
-    <Nav/>
+    
     <div className='w-screen min-h-screen flex flex-col gap-5 items-center bg-[#fff9f9] overflow-y-auto'>
+     <Nav/>
+     {searchItems && searchItems.length>0 && (
+      <div className='w-full max-w-6xl flex flex-col gap-5 items-start p-5 bg-white shadow-md rounded-2xl mt-4'>
+        <h2 className='text-gray-900 text-2xl sm:text-3xl font-semibold border-b border-gray-200 pb-2'>Search results</h2>
+        <div className='w-full h-auto flex flex-wrap gap-6 justify-center'>
+          {searchItems.map((item ,index)=>(<FoodCart data={item} key={index}/>))}
+        </div>
+
+      </div>
+
+     ) }
       
 
       <div className='w-full max-w-6xl flex flex-col gap-5 items-start p-[10px]'>
@@ -71,7 +106,7 @@ const scrollhandler = (ref,direction)=>{
 
             <div className='w-full flex overflow-x-auto gap-4 pb-2' ref={cateScrollRef}>
               {categories.map((cate,index)=>(
-                <CategoryCard name={cate.category} image={cate.image} key={index} />
+                <CategoryCard name={cate.category} image={cate.image} key={index} onClick={()=>handleFilterByCategory(cate.category)} />
               ))}
           </div>
 
@@ -99,7 +134,7 @@ const scrollhandler = (ref,direction)=>{
 
             <div className='w-full flex overflow-x-auto gap-4 pb-2' ref={shopScrollRef}>
               {shopInMyCity?.map((shop,index)=>(
-                <CategoryCard image={shop.image} name={shop.name} key={index} />
+                <CategoryCard image={shop.image} name={shop.name} key={index} onClick={()=>navigate(`/shop/${shop._id}`)} />
               ))}
           </div>
 
@@ -118,7 +153,7 @@ const scrollhandler = (ref,direction)=>{
         <h1 className='text-gray-800 text-2xl sm:text-3xl'> Suggested Food Items</h1>
 
         <div className='w-full h-auto flex flex-wrap gap-[20px] justify-center'>
-          {itemsInMyCity?.map((item,index)=>(
+          {updatedItem?.map((item,index)=>(
             <FoodCart key={index} data={item}/>
           ))}
 
@@ -127,7 +162,7 @@ const scrollhandler = (ref,direction)=>{
       </div>
       
     </div>
-    </>
+    
   )
 }
 

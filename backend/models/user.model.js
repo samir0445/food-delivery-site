@@ -33,6 +33,15 @@ const userSchema =new mongoose.Schema({
     otpExpires:{
         type:Date
     },
+    socketId:{
+        type:String,
+        default:null,
+    },
+    isOnline:{
+        type:Boolean,
+        default:false,
+
+    },
     location:{
         type:{type:String,
             enum:['Point'],
